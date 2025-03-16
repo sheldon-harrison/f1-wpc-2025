@@ -39,7 +39,7 @@ def predictions_page():
 
     with col1:
         # New predictions drop downs
-        st.write("Select your predictions for the top 10 drivers:")
+        st.write("Make your predictions for the top 10 drivers:")
         previous_predictions = [""] * 10  # Initialize with empty values if no previous predictions exist
 
         if not user_predictions.empty:
@@ -51,14 +51,14 @@ def predictions_page():
     with col2:
         # Display the existing predictions if available
         if not user_predictions.empty:
-            st.write("Your previous predictions:")
+            st.write("Your previously submitted predictions:")
             st.write("")
             st.dataframe(user_predictions[['P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8', 'P9', 'P10']].T.rename(columns={0:'Driver'}))
 
     # Check if the current time is before the race start time
     current_time = datetime.now()
     if current_time > race_start_time:
-        st.error("The race has already started. You cannot submit predictions anymore.")
+        st.error("The race has already started. You can no longer submit or edit predictions.")
         return
 
     if st.button("Submit Predictions"):

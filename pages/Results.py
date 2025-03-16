@@ -36,7 +36,7 @@ def calculate_scores(user_predictions, race_results):
         driver = user_predictions[position].values[0]
         try:
             real_pos = race_results[race_results['Driver'] == driver].index.tolist()[0]
-            user_scores.append((10 - abs(real_pos-predicted_pos)))
+            user_scores.append(max(0,(10 - abs(real_pos-predicted_pos))))
         except:
             user_scores.append(0)
         predicted_pos += 1
@@ -55,14 +55,17 @@ def get_all_user_scores(predictions_df,race_results):
                                     axis=0,
                                     ignore_index=True)
     positions_list = ['P1','P2','P3','P4','P5','P6','P7','P8','P9','P10','P11','P12','P13','P14']
+    all_predictions = all_predictions.sort_values(by='Points',ascending=False).reset_index(drop=True)
     all_predictions = all_predictions.set_index(pd.Index(positions_list[:len(all_predictions)]))
     return all_predictions
 
 # Function to show the results page
 def results_page():
     st.title("Race Results and Predictions")
+    st.markdown("Choose a race to see results")
     race_list,race_dict = utils.get_race_list()
-    race_location = st.selectbox("Select the race", race_list)  # Replace with actual race locations
+    race_location = st.selectbox("Select the race", race_list)
+    st.info("More stats coming soon!")
     try:
         race_results = pd.DataFrame([get_race_results(race_dict[race_location])])
         race_results = race_results.T.rename(columns={0:'Driver'})
@@ -87,11 +90,11 @@ def results_page():
             st.dataframe(race_results,use_container_width=True)
             
         with col2:
-            st.markdown(f"Your Predictions ({st.session_state.user}) - **{user_predictions.Points.sum()}** pts")
+            st.markdown(f"Your Results ({st.session_state.user}) - **{user_predictions.Points.sum()}** pts")
             st.dataframe(user_predictions)
             
         with col3:
-            st.markdown("Prediction Results")
+            st.markdown("Group Prediction Results")
             st.dataframe(all_scores)
 
 # Show the results page

@@ -8,7 +8,7 @@ if "authenticated" not in st.session_state or not st.session_state["authenticate
     st.stop()  # Stop execution if not authenticated
 
 st.title("Season Standings")
-st.markdown("Here is where you'll be able to see the standings for this season. Still under construction!")
+st.info("Here is where you'll be able to see the standings for this season. Still under construction!")
 # # Extended dummy data for more races and users
 # dummy_data = {
 #     "User": ["Alice", "Bob", "Alice", "Charlie", "Bob", "Charlie", "Alice", "Bob", "Charlie", "Alice", "Bob", "Charlie"],
