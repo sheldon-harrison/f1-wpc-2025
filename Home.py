@@ -63,6 +63,7 @@ def login():
 
 # Function to show the main page after login
 def main_page():
+    
     if not st.session_state["authenticated"]:
         st.warning("Please log in first!")
         st.stop()  # Stop further execution until user is authenticated
