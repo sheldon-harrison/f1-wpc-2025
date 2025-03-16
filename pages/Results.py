@@ -25,7 +25,6 @@ def get_race_results(round):
         results_dict[position] = driver_name
     return results_dict
 
-
 def calculate_scores(user_predictions, race_results):
     user_scores = []
     predicted_pos = 1
@@ -62,10 +61,10 @@ def get_all_user_scores(predictions_df,race_results):
 # Function to show the results page
 def results_page():
     st.title("Race Results and Predictions")
-    st.markdown("Choose a race to see results")
+    st.markdown("Select a race to see the results!")
     race_list,race_dict = utils.get_race_list()
     race_location = st.selectbox("Select the race", race_list)
-    st.info("More stats coming soon!")
+    # st.info("More stats coming soon!")
     try:
         race_results = pd.DataFrame([get_race_results(race_dict[race_location])])
         race_results = race_results.T.rename(columns={0:'Driver'})
@@ -74,27 +73,38 @@ def results_page():
     predictions_df = utils.read_predictions_from_s3()
     user_predictions = predictions_df[((predictions_df['Race']==race_location)&
                                        (predictions_df['Name']==st.session_state.user))]
-    user_predictions = calculate_scores(user_predictions,race_results)
-    all_scores = get_all_user_scores(predictions_df[predictions_df['Race']==race_location],race_results)
 
     if race_results.empty:
-        st.error(f"Could not retrieve race results for the {race_location}.")
+        st.error(f"Could not retrieve race results for the {race_location}. Check back again later.")
         return
     elif user_predictions.empty:
-        st.error(f"No user predictions found for {st.session_state.user}.")
+        st.error(f"No predictions found for {st.session_state.user}. Did you forget to submit them?")
         return
     else:
+        user_predictions = calculate_scores(user_predictions,race_results)
+        all_scores = get_all_user_scores(predictions_df[predictions_df['Race']==race_location],race_results)
+        st.markdown(f"""**{race_results.loc[1,'Driver']}** won the actual race.
+                    You scored **{user_predictions.Points.sum()}** pts for this race.""")
+        winners = all_scores.loc[all_scores.Points==all_scores.Points.max(),'Predictor']
+        if len(winners)>1:
+            st.markdown(f"""**{", ".join([winner for winner in winners])}** won this race, scoring **{all_scores.Points.max()}** pts each.
+                        The group average score was **{all_scores.Points.mean().round(1)}** pts.
+                        The group score variation was **{(all_scores.Points.std()/all_scores.Points.mean()).round(1)*100}\%**.""")
+        else:
+            st.markdown(f"""**{winners}** won this race with **{all_scores.Points.max()}** pts each.
+                        The group average score was **{all_scores.Points.mean().round(1)}** pts.
+                        The group score variation was **{(all_scores.Points.std()/all_scores.Points.mean()).round(1)*100}\%**.""")
         col1, col2, col3 = st.columns(3)
         with col1:
-            st.markdown("Actual Race Results")
+            st.markdown("**Actual Race Results**")
             st.dataframe(race_results,use_container_width=True)
             
         with col2:
-            st.markdown(f"Your Results ({st.session_state.user}) - **{user_predictions.Points.sum()}** pts")
+            st.markdown(f"**Your Results ({st.session_state.user})**")
             st.dataframe(user_predictions)
             
         with col3:
-            st.markdown("Group Prediction Results")
+            st.markdown("**Group Prediction Results**")
             st.dataframe(all_scores)
 
 # Show the results page
