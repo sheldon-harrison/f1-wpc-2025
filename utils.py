@@ -167,17 +167,36 @@ def calculate_scores(user_predictions, race_results):
 def apply_f1_scoring(user_scores_df):
     """
     user_scores_df: DataFrame with columns ['Predictor', 'Score']
-    Returns: DataFrame with columns ['Predictor', 'Score', 'F1Points', 'Place']
+    Returns: DataFrame with columns ['Predictor', 'Score', 'Points', 'Place']
+    Handles ties: tied users get full points for that place, next place(s) are skipped.
     """
-    # Sort by Score descending, assign place
+    # Sort by Score descending
     user_scores_df = user_scores_df.sort_values(by='Score', ascending=False).reset_index(drop=True)
-    user_scores_df['Place'] = user_scores_df.index + 1
-    user_scores_df['F1Points'] = user_scores_df['Place'].apply(lambda x: f1_scoring_dict.get(x, 0))
+    user_scores_df['Place'] = None
+    user_scores_df['Points'] = 0
+
+    place = 1
+    i = 0
+    n = len(user_scores_df)
+    while i < n:
+        # Find all users with this score (tie group)
+        score = user_scores_df.loc[i, 'Score']
+        tie_indices = user_scores_df.index[user_scores_df['Score'] == score].tolist()
+        tie_count = len(tie_indices)
+        # Assign place and F1 points to all in tie group
+        for idx in tie_indices:
+            user_scores_df.at[idx, 'Place'] = place
+            user_scores_df.at[idx, 'Points'] = f1_scoring_dict.get(place, 0)
+        # Move to next group, skipping places for ties
+        i += tie_count
+        place += tie_count
+
+    user_scores_df['Place'] = user_scores_df['Place'].astype(int)
     return user_scores_df
 
 def get_all_user_scores(predictions_df, race_results):
     """
-    Returns DataFrame with columns: Predictor, Score, F1Points, Place
+    Returns DataFrame with columns: Predictor, Score, Points, Place
     """
     all_scores = []
     for this_user in predictions_df.Name.unique():

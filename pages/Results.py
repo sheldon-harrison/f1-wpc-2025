@@ -40,32 +40,34 @@ def results_page():
         user_row = all_scores[all_scores['Predictor'] == st.session_state.user].iloc[0]
         st.markdown(
             f"""**{race_results.loc[1,'Driver']}** won the actual race.
-            You scored **{user_predictions.Points.sum()}** pts for this race,
+            You scored **{user_predictions.Points.sum()}** for this race,
             finished **{user_row['Place']}**<sup>{'st' if user_row['Place']==1 else 'nd' if user_row['Place']==2 else 'rd' if user_row['Place']==3 else 'th'}</sup>
-            and earned **{user_row['F1Points']}** F1 points.""",
+            and earned **{user_row['Points']}** points.""",
             unsafe_allow_html=True
         )
         winners = all_scores.loc[all_scores.Score == all_scores.Score.max(), 'Predictor']
         if len(winners) > 1:
             st.markdown(
-                f"""**{", ".join([winner for winner in winners])}** won this race, scoring **{all_scores.Score.max()}** pts each.
-                The group average score was **{all_scores.Score.mean().round(1)}** pts.
+                f"""**{", ".join([winner for winner in winners])}** won this race, scoring **{all_scores.Score.max()}** each.
+                The group average score was **{all_scores.Score.mean().round(1)}**.
                 The group score variation was **{(all_scores.Score.std()/all_scores.Score.mean()*100).round(1)}\%**.""")
         else:
             st.markdown(
-                f"""**{winners.values[0]}** won this race with **{all_scores.Score.max()}** pts.
-                The group average score was **{all_scores.Score.mean().round(1)}** pts.
+                f"""**{winners.values[0]}** won this race with **{all_scores.Score.max()}**.
+                The group average score was **{all_scores.Score.mean().round(1)}**.
                 The group score variation was **{(all_scores.Score.std()/all_scores.Score.mean()*100).round(1)}\%**.""")
         col1, col2, col3 = st.columns(3)
         with col1:
             st.markdown("**Actual Race Results**")
-            st.dataframe(race_results, use_container_width=True)
+            st.dataframe(race_results, width='stretch')
         with col2:
             st.markdown(f"**Your Results ({st.session_state.user})**")
             st.dataframe(user_predictions)
         with col3:
             st.markdown("**Group Prediction Results**")
-            st.dataframe(all_scores.set_index('Place')[['Predictor', 'Score', 'F1Points']])
+            # Ensure all predictors are shown, even those with 0 points
+            group_table = all_scores[['Place', 'Predictor', 'Score', 'Points']].set_index('Place')
+            st.dataframe(group_table, use_container_width=True)
 
 # Show the results page
 results_page()
