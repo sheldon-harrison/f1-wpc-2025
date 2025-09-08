@@ -13,39 +13,32 @@ if "authenticated" not in st.session_state or not st.session_state["authenticate
 def standings_page():
     st.title("Season Standings")
     predictions_df = utils.read_predictions_from_s3()
-    race_list,race_dict = utils.get_race_list()
-    all_scores = pd.DataFrame()
+    race_list, race_dict = utils.get_race_list()
+    all_f1_points = pd.DataFrame()
     for race in race_list:
         if race in predictions_df.Race.unique():
             race_results = pd.DataFrame([utils.get_race_results(race_dict[race])])
-            race_results = race_results.T.rename(columns={0:'Driver'})
-            all_scores_for_race = utils.get_all_user_scores(predictions_df[predictions_df['Race']==race],race_results)
-            all_scores_for_race = (all_scores_for_race[['Predictor','Points']]
-                                   .reset_index(drop=True)
-                                   .set_index('Predictor')
-                                   .rename(columns={'Points':race}))
-            all_scores = pd.concat([all_scores,
-                                    all_scores_for_race],
-                                    axis=1)
-    
-    all_scores = all_scores.fillna(0)
-    cumsum_df = all_scores.cumsum(axis=1)
-    places = ['P1','P2','P3','P4','P5','P6','P7','P8','P9','P10','P11','P12','P13','P14']
-    standings_df = (all_scores
+            race_results = race_results.T.rename(columns={0: 'Driver'})
+            race_scores = utils.get_all_user_scores(predictions_df[predictions_df['Race'] == race], race_results)
+            race_scores = race_scores[['Predictor', 'F1Points']].set_index('Predictor').rename(columns={'F1Points': race})
+            all_f1_points = pd.concat([all_f1_points, race_scores], axis=1)
+    all_f1_points = all_f1_points.fillna(0)
+    cumsum_df = all_f1_points.cumsum(axis=1)
+    places = ['P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8', 'P9', 'P10', 'P11', 'P12', 'P13', 'P14']
+    standings_df = (all_f1_points
                     .sum(axis=1)
                     .sort_values(ascending=False)
                     .reset_index()
-                    .rename(columns={0:'Points'}))
+                    .rename(columns={0: 'F1Points'}))
     standings_df.index = places
-    st.info(f"""The season is {round(all_scores.shape[1]/len(race_list)*100,1)}\% done. So far,
-            **{standings_df.iloc[0,0]}** is leading with **{standings_df.iloc[0,1]}** points, ahead of
+    st.info(f"""The season is {round(all_f1_points.shape[1]/len(race_list)*100,1)}\% done. So far,
+            **{standings_df.iloc[0,0]}** is leading with **{standings_df.iloc[0,1]}** F1 points, ahead of
             {standings_df.iloc[1,0]} and {standings_df.iloc[2,0]} with {standings_df.iloc[1,1]}
             and {standings_df.iloc[2,1]} points, respectively.""")
     st.dataframe(standings_df)
    
-    with st.expander(label="Full season results table",
-                     expanded=False):
-        st.dataframe(all_scores)
+    with st.expander(label="Full season F1 points table", expanded=False):
+        st.dataframe(all_f1_points)
 
     fig = go.Figure()
     for i, row in cumsum_df.iterrows():
@@ -56,24 +49,24 @@ def standings_page():
             name=i
         ))
     fig.update_layout(
-        title="Cumulative Points Over Races",
+        title="Cumulative F1 Points Over Races",
         xaxis_title="Race",
-        yaxis_title="Cumulative Points"
+        yaxis_title="Cumulative F1 Points"
     )
     st.plotly_chart(fig)
 
     fig = go.Figure()
-    for i, row in all_scores.iterrows():
+    for i, row in all_f1_points.iterrows():
         fig.add_trace(go.Scatter(
-            x=cumsum_df.columns,
+            x=all_f1_points.columns,
             y=row.values,
             mode='lines+markers',
             name=i
         ))
     fig.update_layout(
-        title="Individual Race Performance",
+        title="Individual Race F1 Points",
         xaxis_title="Race",
-        yaxis_title="Race Points"
+        yaxis_title="Race F1 Points"
     )
     st.plotly_chart(fig)
         

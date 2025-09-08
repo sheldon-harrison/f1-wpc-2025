@@ -19,6 +19,20 @@ aws_secret_access_key = os.getenv('AWS_SECRET_ACCESS_KEY')
 # Initialize an S3 client
 s3_client = boto3.client('s3')
 
+# F1 scoring dict, anything beyond 10 gets 0 points
+f1_scoring_dict = {
+    1:25,
+    2:18,
+    3:15,
+    4:12,
+    5:10,
+    6:8,
+    7:6,
+    8:4,
+    9:2,
+    10:1
+}
+
 # Function to read the CSV file from S3
 def read_predictions_from_s3():
     try:
@@ -150,19 +164,26 @@ def calculate_scores(user_predictions, race_results):
     user_predictions['Points'] = user_scores
     return user_predictions
 
-def apply_f1_scoring(scores):
-    return
+def apply_f1_scoring(user_scores_df):
+    """
+    user_scores_df: DataFrame with columns ['Predictor', 'Score']
+    Returns: DataFrame with columns ['Predictor', 'Score', 'F1Points', 'Place']
+    """
+    # Sort by Score descending, assign place
+    user_scores_df = user_scores_df.sort_values(by='Score', ascending=False).reset_index(drop=True)
+    user_scores_df['Place'] = user_scores_df.index + 1
+    user_scores_df['F1Points'] = user_scores_df['Place'].apply(lambda x: f1_scoring_dict.get(x, 0))
+    return user_scores_df
 
-def get_all_user_scores(predictions_df,race_results):
-    all_predictions = pd.DataFrame(columns=['Predictor','Points'])
+def get_all_user_scores(predictions_df, race_results):
+    """
+    Returns DataFrame with columns: Predictor, Score, F1Points, Place
+    """
+    all_scores = []
     for this_user in predictions_df.Name.unique():
-        this_user_predictions = predictions_df[predictions_df['Name']==this_user]
-        user_points = calculate_scores(this_user_predictions,race_results).Points.sum()
-        all_predictions = pd.concat([all_predictions,
-                                    pd.DataFrame([{'Predictor':this_user,'Points':user_points}])],
-                                    axis=0,
-                                    ignore_index=True)
-    positions_list = ['P1','P2','P3','P4','P5','P6','P7','P8','P9','P10','P11','P12','P13','P14']
-    all_predictions = all_predictions.sort_values(by='Points',ascending=False).reset_index(drop=True)
-    all_predictions = all_predictions.set_index(pd.Index(positions_list[:len(all_predictions)]))
-    return all_predictions
+        this_user_predictions = predictions_df[predictions_df['Name'] == this_user]
+        user_score = calculate_scores(this_user_predictions, race_results).Points.sum()
+        all_scores.append({'Predictor': this_user, 'Score': user_score})
+    user_scores_df = pd.DataFrame(all_scores)
+    user_scores_df = apply_f1_scoring(user_scores_df)
+    return user_scores_df
