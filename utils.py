@@ -134,14 +134,33 @@ def update_predictions(new_predictions, name, race_location):
 # Function to get the race results from the F1 API
 def get_race_results(round):
     url = f"https://api.jolpi.ca/ergast/f1/2025/{round}/results/?format=json"
-    
-    response = requests.get(url)
-    data = response.json()
-    race_results = data['MRData']['RaceTable']['Races'][0]['Results']
+
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+    except Exception as e:
+        st.warning(f"Unable to fetch race results for round {round}: {e}")
+        return {}
+
+    # Safely navigate the JSON structure; if 'Races' is empty, return empty dict
+    races = data.get('MRData', {}).get('RaceTable', {}).get('Races', [])
+    if not races:
+        # No official results yet for this round
+        return {}
+
+    race_results = races[0].get('Results', [])
+    if not race_results:
+        return {}
+
     results_dict = {}
     for result in race_results:
-        position = int(result['position'])  # Position is a string, so convert to int
-        driver_name = f"{result['Driver']['givenName']} {result['Driver']['familyName']}"
+        try:
+            position = int(result.get('position'))  # Position is a string, so convert to int
+        except Exception:
+            continue
+        driver = result.get('Driver', {})
+        driver_name = f"{driver.get('givenName','')} {driver.get('familyName','')}".strip()
         results_dict[position] = driver_name
     return results_dict
 

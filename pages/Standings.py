@@ -18,7 +18,11 @@ def standings_page():
     all_places = pd.DataFrame()
     for race in race_list:
         if race in predictions_df.Race.unique():
-            race_results = pd.DataFrame([utils.get_race_results(race_dict[race])])
+            race_results_dict = utils.get_race_results(race_dict[race])
+            # If there are no official results yet for this race, skip it
+            if not race_results_dict:
+                continue
+            race_results = pd.DataFrame([race_results_dict])
             race_results = race_results.T.rename(columns={0: 'Driver'})
             race_scores = utils.get_all_user_scores(predictions_df[predictions_df['Race'] == race], race_results)
             # F1 points table
@@ -58,7 +62,10 @@ def standings_page():
     all_scores = pd.DataFrame()
     for race in race_list:
         if race in predictions_df.Race.unique():
-            race_results = pd.DataFrame([utils.get_race_results(race_dict[race])])
+            race_results_dict = utils.get_race_results(race_dict[race])
+            if not race_results_dict:
+                continue
+            race_results = pd.DataFrame([race_results_dict])
             race_results = race_results.T.rename(columns={0: 'Driver'})
             race_scores = utils.get_all_user_scores(predictions_df[predictions_df['Race'] == race], race_results)
             race_score_vals = race_scores[['Predictor', 'Score']].set_index('Predictor').rename(columns={'Score': race})
